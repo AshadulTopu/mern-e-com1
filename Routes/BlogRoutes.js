@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const blogController = require("../Controller/BlogController");
-const { authMiddleware, isAdmin } = require("../Middlewares/authMiddleware");
+const { authMiddleware, isAdmin } = require("../Middlewares/AuthMiddleware");
 
 
 router.post("/create-blog", authMiddleware, isAdmin, blogController.createBlog);

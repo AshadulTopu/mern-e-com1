@@ -7,6 +7,8 @@ router.get('/all-products', ProductController.getAllProducts);
 router.get('/single-product/:id', ProductController.getSingleProduct);
 router.put('/update-product/:id', authMiddleware, isAdmin, ProductController.updateProduct);
 router.get('/delete-product/:id', authMiddleware, isAdmin, ProductController.deleteProduct);
+router.put('/wishlist', authMiddleware, ProductController.addToWishlist);
+router.put('/rating', authMiddleware, ProductController.updateRating);
 
 
 module.exports = router

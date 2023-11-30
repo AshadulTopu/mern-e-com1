@@ -10,6 +10,9 @@ const cookieParser = require('cookie-parser')
 const authRouter = require('./Routes/AuthRoutes')
 const ProductRouter = require('./Routes/ProductsRoutes')
 const BlogRouter = require('./Routes/BlogRoutes')
+const CategoryRouter = require('./Routes/PodCategoryRoutes')
+const BlogCategoryRouter = require('./Routes/BlogCategoryRoutes')
+const BrandRouter = require('./Routes/BrandRoutes')
 
 app.use(morgan('dev'))
 
@@ -25,6 +28,10 @@ app.use(cookieParser())
 app.use('/api/auth', authRouter)
 app.use('/api/product', ProductRouter)
 app.use('/api/blog', BlogRouter)
+app.use('/api/category', CategoryRouter)
+app.use('/api/blogCategory', BlogCategoryRouter)
+app.use('/api/brand', BrandRouter)
+
 app.get('/', (req, res) => {
     res.send('Hello World')
 })

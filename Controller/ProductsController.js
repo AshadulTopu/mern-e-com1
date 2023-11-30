@@ -2,6 +2,7 @@
 const ProductModel = require('../Models/ProductsModel')
 const asyncHandler = require('express-async-handler')
 const validateMongodbId = require('../Utils/ValidateMongodbId')
+const UserModel = require('../Models/UserModel')
 const slugify = require('slugify')
 
 // create new product
@@ -135,6 +136,95 @@ exports.getAllProducts = asyncHandler(async (req, res) => {
 
         const products = await query
         res.json(products)
+    } catch (error) {
+        throw new Error(error)
+    }
+})
+
+// product wishlist
+exports.addToWishlist = asyncHandler(async (req, res) => {
+    const { _id } = req.user
+    const { prodId } = req.body
+    validateMongodbId(prodId)
+    try {
+        const user = await UserModel.findById(_id)
+        // console.log(user);
+        const alreadyAdded = user.wishlist.find((id) => id.toString() === prodId)
+        if (alreadyAdded) {
+            const user = await UserModel.findByIdAndUpdate(_id, {
+                $pull: { wishlist: prodId }
+            }, {
+                new: true
+            })
+            res.json({
+                success: true,
+                message: "Product removed from wishlist",
+                data: user
+            })
+        } else {
+            const user = await UserModel.findByIdAndUpdate(_id, {
+                $push: { wishlist: prodId }
+            }, {
+                new: true
+            })
+            res.json({
+                success: true,
+                message: "Product added to wishlist",
+                data: user
+            })
+        }
+    } catch (error) {
+        throw new Error(error)
+    }
+})
+
+// product rating count / update rating
+exports.updateRating = asyncHandler(async (req, res) => {
+    const { _id } = req.user
+    const { star, comment, prodId } = req.body
+    validateMongodbId(prodId)
+    try {
+        const product = await ProductModel.findById(prodId)
+        const alreadyRated = product.ratings.find((userId) => userId.postedBy.toString() === _id.toString())
+        if (alreadyRated) {
+            // if user already rated then update the rating and comment of the product
+            const product = await ProductModel.findOneAndUpdate({ ratings: { $elemMatch: { postedBy: _id } } }, {
+                $set: { "ratings.$.star": star, "ratings.$.comment": comment },
+            }, {
+                new: true
+            })
+            // res.json(product)
+
+            // if user already rated then remove the rating and comment of the product
+            // const product = await ProductModel.findByIdAndUpdate(prodId, {
+            //     $pull: { ratings: { postedBy: _id } },
+            //     totalRatings: product.totalRatings - 1
+            // }, {
+            //     new: true
+            // })
+            // res.json(product)
+        } else {
+            // if user not rated then add the rating and comment of the product
+            const product = await ProductModel.findByIdAndUpdate(prodId, {
+                $push: { ratings: { star: star, postedBy: _id, comment: comment } },
+                // totalRatings: product.totalRatings + 1
+            }, {
+                new: true
+            })
+            // res.json(product)
+        }
+        // get all ratings and update the totalRatings
+        const getRatings = await ProductModel.findById(prodId)
+        const totalRatings = getRatings.ratings.length
+        const totalRatingsSum = getRatings.ratings.reduce((acc, ele) => acc + ele.star, 0)
+        const finalRating = Math.round(totalRatingsSum / totalRatings)
+        const finalProduct = await ProductModel.findByIdAndUpdate(prodId, {
+            totalRatings: finalRating
+        }, {
+            new: true
+        })
+        res.json(finalProduct)
+
     } catch (error) {
         throw new Error(error)
     }
