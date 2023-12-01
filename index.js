@@ -13,6 +13,7 @@ const BlogRouter = require('./Routes/BlogRoutes')
 const CategoryRouter = require('./Routes/PodCategoryRoutes')
 const BlogCategoryRouter = require('./Routes/BlogCategoryRoutes')
 const BrandRouter = require('./Routes/BrandRoutes')
+const CouponRouter = require('./Routes/CouponRoutes')
 
 app.use(morgan('dev'))
 
@@ -31,6 +32,7 @@ app.use('/api/blog', BlogRouter)
 app.use('/api/category', CategoryRouter)
 app.use('/api/blogCategory', BlogCategoryRouter)
 app.use('/api/brand', BrandRouter)
+app.use('/api/coupon', CouponRouter)
 
 app.get('/', (req, res) => {
     res.send('Hello World')

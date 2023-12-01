@@ -4,6 +4,9 @@ const asyncHandler = require('express-async-handler')
 const validateMongodbId = require('../Utils/ValidateMongodbId')
 const UserModel = require('../Models/UserModel')
 const slugify = require('slugify')
+const CloudinaryUploadImages = require('../Utils/Cloudinary')
+const fs = require("fs");
+
 
 // create new product
 exports.createProduct = asyncHandler(async (req, res) => {
@@ -178,7 +181,7 @@ exports.addToWishlist = asyncHandler(async (req, res) => {
     }
 })
 
-// product rating count / update rating
+// product rating count / update rating and comment
 exports.updateRating = asyncHandler(async (req, res) => {
     const { _id } = req.user
     const { star, comment, prodId } = req.body
@@ -216,7 +219,7 @@ exports.updateRating = asyncHandler(async (req, res) => {
         // get all ratings and update the totalRatings
         const getRatings = await ProductModel.findById(prodId)
         const totalRatings = getRatings.ratings.length
-        const totalRatingsSum = getRatings.ratings.reduce((acc, ele) => acc + ele.star, 0)
+        const totalRatingsSum = getRatings.ratings.map((item) => item.star).reduce((p, c) => p + c, 0)
         const finalRating = Math.round(totalRatingsSum / totalRatings)
         const finalProduct = await ProductModel.findByIdAndUpdate(prodId, {
             totalRatings: finalRating
@@ -225,6 +228,43 @@ exports.updateRating = asyncHandler(async (req, res) => {
         })
         res.json(finalProduct)
 
+    } catch (error) {
+        throw new Error(error)
+    }
+})
+
+
+// upload images
+exports.uploadImages = asyncHandler(async (req, res) => {
+    // console.log(req.files);
+    const { id } = req.params
+    validateMongodbId(id)
+    try {
+        // console.log(req.files);
+        // upload image to cloudinary
+        const uploader = (path) => CloudinaryUploadImages(path, {
+            folder: "products",
+            resource_type: "auto",
+        })
+
+        const urls = []
+        const files = req.files
+        // console.log(files);
+        for (const file of files) {
+            const { path } = file
+            // console.log(path);
+            const newPath = await uploader(path)
+            urls.push(newPath)
+            // fs.unlinkSync(path)
+        }
+        const product = await ProductModel.findByIdAndUpdate(id, {
+            images: urls.map((file) => {
+                return file
+            })
+        }, {
+            new: true
+        })
+        res.json(product)
     } catch (error) {
         throw new Error(error)
     }

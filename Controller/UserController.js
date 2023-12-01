@@ -1,4 +1,6 @@
 const userModel = require('../Models/UserModel')
+const productModel = require('../Models/ProductsModel')
+const CartModel = require('../Models/CartModel')
 const asyncHandler = require('express-async-handler')
 const generateToken = require('../Config/JWTToken')
 const validateMongodbId = require('../Utils/ValidateMongodbId')
@@ -74,6 +76,40 @@ exports.login = asyncHandler(
             message: "User logged in successfully",
             data: user, // don't send password in response data 
             token: generateToken(user._id),
+        })
+    }
+)
+// login Admin
+exports.loginAdmin = asyncHandler(
+    async (req, res) => {
+        const { email, password } = req.body
+        if (!email || !password) {
+            return res.status(400).json({ error: "All fields are required" })
+        }
+        // check if Admin exist
+        const admin = await userModel.findOne({ email: email })
+        if (!admin) {
+            return res.status(404).json({ error: "Admin not found" })
+        }
+        if (admin.role !== "admin") {
+            return res.status(401).json({ error: "Unauthorized" })
+        }
+        const isMatch = await admin.comparePassword(password)
+        if (!isMatch) {
+            throw new Error("Email or Password Invalid")
+        }
+        // generate fresh token
+        const refreshToken = await generateRefreshToken(admin._id)
+        const updatedAdmin = await userModel.findByIdAndUpdate(admin._id, { refreshToken: refreshToken }, { new: true })
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            maxAge: 24 * 60 * 60 * 1000
+        })
+        res.status(200).json({
+            success: true,
+            message: "Admin logged in successfully",
+            data: admin, // don't send password in response data 
+            token: generateToken(admin._id),
         })
     }
 )
@@ -205,7 +241,13 @@ exports.updateUser = asyncHandler(
         try {
             const userId = req.user.id;
             validateMongodbId(userId);
-            const user = await userModel.findByIdAndUpdate(userId, req.body, {
+            const user = await userModel.findByIdAndUpdate(userId, {
+                firstName: req.body?.firstName,
+                lastName: req.body?.lastName,
+                email: req.body?.email,
+                phone: req.body?.phone,
+
+            }, {
                 new: true,
             });
             if (!user) {
@@ -374,4 +416,110 @@ exports.resetPassword = asyncHandler(
             throw new Error(error);
         }
     }
-) 
+)
+
+// get wishlists
+exports.getWishList = asyncHandler(
+    async (req, res) => {
+        const { _id } = req.user;
+        try {
+            const user = await userModel.findById(_id).populate("wishlist");
+            res.status(200).json({
+                success: true,
+                wishList: user,
+            });
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+)
+
+// save address
+exports.saveAddress = asyncHandler(
+    async (req, res) => {
+        try {
+            const userId = req.user.id;
+            validateMongodbId(userId);
+            const user = await userModel.findByIdAndUpdate(userId, {
+                address: req.body?.address,
+            }, {
+                new: true,
+            });
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
+            res.status(200).json({
+                success: true,
+                message: "Address saved successfully",
+                data: user,
+            });
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+)
+
+// add to cart
+exports.addToCart = asyncHandler(
+    async (req, res) => {
+        try {
+            const { cart } = req.body;
+            const { _id } = req.user;
+            let products = [];
+            validateMongodbId(_id);
+            const user = await userModel.findById(_id);
+            //check if product already exist in cart
+            const alreadyExistCart = await CartModel.findOne({ orderedBy: _id })
+            if (alreadyExistCart) {
+                alreadyExistCart.remove();
+            }
+            for (let i = 0; i < cart.length; i++) {
+                let object = {}
+                object.product = cart[i]._id
+                object.count = cart[i].count
+                object.color = cart[i].color
+                let price = await productModel.findById(cart[i]._id).select("price").exec();
+                object.price = price.price
+                products.push(object)
+
+            }
+
+            let cartTotal = 0;
+            for (let i = 0; i < products.length; i++) {
+                cartTotal = cartTotal + products[i].price * products[i].count
+            }
+            let newCart = await new CartModel({
+                products,
+                cartTotal,
+                orderedBy: _id
+            }).save();
+
+            res.status(200).json({
+                success: true,
+                message: "Cart updated successfully",
+                data: newCart,
+            });
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+)
+
+// get cart
+exports.getCart = asyncHandler(
+    async (req, res) => {
+        try {
+            const { _id } = req.user;
+            validateMongodbId(_id);
+            const cart = await CartModel.findOne({ orderedBy: _id }).populate("products.product");
+            res.status(200).json({
+                success: true,
+                cart: cart,
+            });
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+)
+
+ 

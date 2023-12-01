@@ -48,11 +48,7 @@ const blogSchema = new mongoose.Schema({
         default: "Admin"
     },
     tags: [String],
-    image: {
-        type: String,
-        // required: true,
-        default: "https://images.unsplash.com/photo-1605106706229-9b2a5a9a3f5b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
-    },
+    images: [],
     // date: {
     //     type: Date,
     //     default: Date.now
