@@ -19,10 +19,13 @@ router.put('/reset-password/:token', userController.resetPassword);
 router.get('/admin', userController.loginAdmin);
 router.get('/wishlist', authMiddleware, userController.getWishList);
 router.put('/save-address', authMiddleware, userController.saveAddress);
-// router.put('/apply-coupon', authMiddleware, userController.applyCoupon);
-router.put('/cart', authMiddleware, userController.addToCart);
+router.post('/cart', authMiddleware, userController.addToCart);
 router.get('/cart', authMiddleware, userController.getCart);
-
+router.put('/cart-item', authMiddleware, userController.emptyCart);
+router.post('/apply-coupon', authMiddleware, userController.applyCoupon);
+router.post('/cash-order', authMiddleware, userController.createOrder);
+router.get('/orders', authMiddleware, userController.getOrders);
+router.put('/order-status/:id', authMiddleware, isAdmin, userController.updateOrderStatus);
 
 
 
